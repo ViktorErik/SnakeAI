@@ -1,6 +1,7 @@
 
-import pygame as pg
+from collections import deque
 from random import randrange
+from math import sqrt
 
 import QLearning
 
@@ -10,42 +11,17 @@ Snake Game
 # pip freeze > requirements.txt
 
 class Snake:
-
-    WIDTH, HEIGHT = 1024, 512
-    COLS, ROWS = 16, 8
-    TILE_SIZE = WIDTH // COLS
-    assert TILE_SIZE == HEIGHT // ROWS
-    FPS = 15
+    
     START_POS = [2, 3]
-    dirs = {"R": (1, 0), "L": (-1, 0), "D": (0, 1), "U": (0, -1)}
-    clock = pg.time.Clock()
+    COLS, ROWS = 16, 8
+    dirs = {"R": (1, 0), "L": (-1, 0), "D": (0, 1), "U": (0, -1)}    
 
     def __init__(self, Q):
-        self.Q = Q
-        pg.font.init()
-        self.font = pg.font.Font(size=32)
-        self.screen = pg.display.set_mode((self.WIDTH, self.HEIGHT))
-        pg.display.set_caption("SnakeAI")
+        self.Q = Q                
         self.snake_poss = [self.START_POS[:]]
         self.food_pos = [randrange(0, self.COLS), randrange(0, self.ROWS)]
-
-
-    def render_grid(self):
-        for r in range(self.ROWS):            
-            for c in range(self.COLS):
-                pg.draw.rect(self.screen, (0, 0, 0), (c*self.TILE_SIZE, r*self.TILE_SIZE, self.TILE_SIZE, self.TILE_SIZE))                
-                pg.draw.line(self.screen, (200, 200, 200), (c*self.TILE_SIZE, 0), (c*self.TILE_SIZE, self.HEIGHT))
-                pg.draw.line(self.screen, (200, 200, 200), (0, r*self.TILE_SIZE), (self.WIDTH, r*self.TILE_SIZE))
-
-
-    def draw_snake(self):
-
-        for pos in self.snake_poss:
-            pg.draw.rect(self.screen, (120, 255, 90), (pos[0]*self.TILE_SIZE+1, pos[1]*self.TILE_SIZE+1, self.TILE_SIZE-1, self.TILE_SIZE-1))
-
-
-    def draw_foo(self):
-        pg.draw.rect(self.screen, (255, 0, 0), (self.food_pos[0]*self.TILE_SIZE+1, self.food_pos[1]*self.TILE_SIZE+1, self.TILE_SIZE-1, self.TILE_SIZE-1))
+        self.dir = (1, 0)
+        self.cur_max = 0
 
 
     def check_food_collision(self):        
@@ -53,132 +29,184 @@ class Snake:
             return True
         return False
     
-    def check_wall_collision(self): # TODO: FIX        
+    def check_wall_collision(self):   
         if self.snake_poss[0][0] < 0 or self.snake_poss[0][0] >= self.COLS:
             return True
         if self.snake_poss[0][1] < 0 or self.snake_poss[0][1] >= self.ROWS:
             return True 
         return False 
     
-    def draw_score(self):
-        text = self.font.render(str(len(self.snake_poss)), False, (255, 255, 255))
-        self.screen.blit(text, (20, 20))
+    def get_cur_state(self, dir):
+        head = self.snake_poss[0]
+        x, y = head     
+        fx, fy = self.food_pos
+        state = [0] * 12
+        if x - 1 < 0 or [x - 1, y] in self.snake_poss:
+            state[2] = 1
+        if x + 1 >= self.COLS or [x + 1, y] in self.snake_poss:            
+            state[0] = 1
+        if y - 1 < 0 or [x, y - 1] in self.snake_poss:
+            state[3] = 1
+        if y + 1 >= self.ROWS or [x, y + 1] in self.snake_poss:
+            state[1] = 1    
 
-    def run_game_loop(self):
-        running = True
-        dir = self.dirs["R"]        
-
-        while running:      
-            self.clock.tick(self.FPS)
-            pg.display.update()
-
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    running = False
-
-                if event.type == pg.KEYDOWN:
-                    if   event.key == pg.K_w and dir != (0,  1):                        
-                        dir = self.dirs["U"]
-                    elif event.key == pg.K_s and dir != (0, -1):
-                        dir = self.dirs["D"]                                 
-                    elif event.key == pg.K_d and dir != (-1, 0):
-                        dir = self.dirs["R"]
-                    elif event.key == pg.K_a and dir != (1,  0):
-                        dir = self.dirs["L"]
-                    break
-            
-
-            # Retarded solution:
-            # if self.food_pos[1] < self.snake_poss[0][1] and dir != (0, 1):
-            #     dir = self.dirs["U"]
-
-            # elif self.food_pos[1] > self.snake_poss[0][1] and dir != (0, -1):
-            #     dir = self.dirs["D"]
-            
-            # elif self.food_pos[0] < self.snake_poss[0][0] and dir != (1, 0):
-            #     dir = self.dirs["L"]
-
-            # elif self.food_pos[0] > self.snake_poss[0][0] and dir != (-1, 0):
-            #     dir = self.dirs["R"]
-
-            head = self.snake_poss[0]            
-            state = [0, 0, 0, 0, 0, 0, 0, 0]
-            if head[0] - 1 < 0:
-                state[2] = 1
-            if head[0] + 1 >= self.COLS:
-                state[0] = 1
-            if head[1] - 1 < 0:
-                state[3] = 1
-            if head[1] + 1 >= self.ROWS:
-                state[1] = 1
-            
-            # if [head[0] - 1, head[1]] == self.food_pos:
-            #     state[6] = 1
-            # if [head[0] + 1, head[1]] == self.food_pos:
-            #     state[4] = 1
-            # if [head[0], head[1] - 1] == self.food_pos:
-            #     state[7] = 1
-            # if [head[0], head[1] + 1] == self.food_pos:
-            #     state[5] = 1
-
-            if [head[0] - 1, head[1]] == self.food_pos:
-                state[6] = 1
-            if [head[0] + 1, head[1]] == self.food_pos:
-                state[4] = 1
-            if [head[0], head[1] - 1] == self.food_pos:
-                state[7] = 1
-            if [head[0], head[1] + 1] == self.food_pos:
-                state[5] = 1
-
-            
-            state = tuple(state)
-            
-            try: action = self.Q.Q[state].index(max(self.Q.Q[state]))
-            except: action = [0, 0, 0, 0, 0, 0, 0, 0]
-
-            Q.learn(state)
-
-            match action:
-                case 0:
-                    dir = (1, 0)
-                case 1:
-                    dir = (0, 1)
-                case 2:
-                    dir = (-1, 0)
-                case 3:
-                    dir = (0, -1)
-            
-            
-            last_poss = [pos[:] for pos in self.snake_poss.copy()]
-                            
-            self.snake_poss[0][0] = (self.snake_poss[0][0] + dir[0])
-            self.snake_poss[0][1] = (self.snake_poss[0][1] + dir[1])
-                
-            
-            if len(self.snake_poss) > 1:
-                for i in range(1, len(self.snake_poss)):
-                    self.snake_poss[i] = last_poss[i-1][:]
-
-
-            self.render_grid()
-            self.draw_snake()
-            self.draw_foo()
-            self.draw_score()
-            if self.check_food_collision():                
-                self.snake_poss.append(last_poss[-1])
-                self.food_pos = [randrange(0, self.COLS), randrange(0, self.ROWS)]
-            if self.snake_poss[0] in self.snake_poss[1:] or self.check_wall_collision():
-                self.snake_poss = [self.START_POS[:]]
-                
+        if x < fx:
+            state[4] = 1
+        if y < fy:
+            state[5] = 1
+        if x > fx:
+            state[6] = 1
+        if y > fy:
+            state[7] = 1
         
-  
+        match dir:
+            case (1, 0):
+                state[8] = 1
+            case (0, 1):
+                state[9] = 1
+            case (-1, 0):
+                state[10] = 1
+            case (0, -1):
+                state[11] = 1
+                
+        return tuple(state)
+    
+    def get_dir(self, action, dir):
+        if action ==  0  :
+            dir = (1, 0)
+        if action ==  1  :
+            dir = (0, 1)
+        if action ==  2  :
+            dir = (-1, 0)
+        if action ==  3  :
+            dir = (0, -1)
+        return dir 
+    
+
+    def get_neighbors(self, cur):
+        neighbors = []
+        for dir in self.dirs.values():
+            new_pos = [cur[0] + dir[0], cur[1] + dir[1]]
+            neighbors.append(new_pos)
+        return neighbors
+
+    def get_reachable(self, pos):
+        res = 1
+        visited = {(pos[0], pos[1])}
+        q = deque()
+        q.append(pos)
+        while q:
+            cur = q.popleft()
+            cur_neighbors = self.get_neighbors(cur)
+            for n in cur_neighbors:
+                col, row = n[0], n[1]
+                if n not in self.snake_poss and (n[0], n[1]) not in visited and 0 <= col and col < self.COLS and 0 <= row and row < self.ROWS:
+                    visited.add((n[0], n[1]))
+                    q.append(n)
+                    res += 1                             
+        
+        return res
+
+    
+    def get_reward(self, action, prev_pos, pos, dead, eaten):
+
+        if dead:
+            return -100
+        if eaten:
+            return  5
+
+        reward = 0
+        x1, y1 = prev_pos
+        x2, y2 = pos
+        fx, fy = self.food_pos
+
+        d1 = abs(x1 - fx) + abs(y1 - fy)
+        d2 = abs(x2 - fx) + abs(y2 - fy)
+        
+        if d2 < d1:
+            reward += 0.1        
+        else:
+            reward -= 0.1
+        
+
+        reachable_poss = self.get_reachable(pos)
+        if reachable_poss < 5:
+            reward -= (self.ROWS * self.COLS - reachable_poss)/10        
+        
+        
+
+        # reward -= 0# Discourage going in circles        
+        return reward
+    
+    def train(self):   
+                            
+                    # if event.type == pg.KEYDOWN:
+                    #     if   event.key == pg.K_w and dir != (0,  1):                        
+                    #         dir = self.dirs["U"]
+                    #     elif event.key == pg.K_s and dir != (0, -1):
+                    #         dir = self.dirs["D"]                                 
+                    #     elif event.key == pg.K_d and dir != (-1, 0):
+                    #         dir = self.dirs["R"]
+                    #     elif event.key == pg.K_a and dir != (1,  0):
+                    #         dir = self.dirs["L"]
+                    #     break
+        
+        dead = False
+        eaten = False            
+        
+        
+        state = self.get_cur_state(self.dir)
+        prev_pos = self.snake_poss[0][:]
+        
+        try: 
+            action = self.Q.get_action(state, self.dir)            
+        except: 
+            action = 0        
+
+        self.dir = self.get_dir(action, self.dir)
+        
 
 
-if __name__ == "__main__":
+        
+        last_poss = [pos[:] for pos in self.snake_poss.copy()]
+                        
+        self.snake_poss[0][0] = (self.snake_poss[0][0] + self.dir[0])
+        self.snake_poss[0][1] = (self.snake_poss[0][1] + self.dir[1])
+            
+        
+        if len(self.snake_poss) > 1:
+            for i in range(1, len(self.snake_poss)):
+                self.snake_poss[i] = last_poss[i-1][:]
+                
 
-    Q = QLearning.QLearning()
-    # Q.learn()
-    # print(Q[(0, 0, 0, 0, 0, 0, 0, 0)])
 
-    snake = Snake(Q)
-    snake.run_game_loop()
+        if self.check_food_collision():                                
+            eaten = True
+
+        if self.snake_poss[0] in self.snake_poss[1:] or self.check_wall_collision():
+            self.dir = self.dirs["R"]        
+            dead = True             
+        
+
+        next_state = self.get_cur_state(self.dir)            
+
+        reward = self.get_reward(action, prev_pos, self.snake_poss[0], dead, eaten)
+        self.Q.learn(state, action, next_state, reward, dead)     
+
+
+        if dead:                
+            self.snake_poss = [self.START_POS[:]]
+        if eaten:
+            self.snake_poss.append(last_poss[-1])          
+            self.food_pos = [randrange(0, self.COLS), randrange(0, self.ROWS)]
+
+
+        if len(self.snake_poss) > self.cur_max:
+            self.cur_max = len(self.snake_poss)
+            print(self.cur_max)
+                
+
+        
+
+
+

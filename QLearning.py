@@ -2,11 +2,14 @@ from random import random, choice, randint
 
 class QLearning:
 
-    learning_rate = 0.5
+    learning_rate = 0.01
     discount_factor = 0.95
-    exploration_prob = 0.2
+    exploration_prob = 0.5
     epochs = 100_000
     actions = [0, 1, 2, 3]
+
+    threshold = 0.05
+    
     # states = {"dl": 0, "dr": 0, "dd": 0, "du": 0, 
     #           "dir_up": 0, "dir_down": 0, "dir_left": 0, "dir_right": 0,
     #           "fl": 0, "fr": 0, "fu": 0, "fd": 0}
@@ -17,58 +20,66 @@ class QLearning:
     Q = {} # States mapped to actions
      
 
-    def step(self, state, action):                
-
-        reward = 0
-        done = False
-        
-        if state[action]:
-            reward -= 10 
-        if state[action + 4]:
-            reward += 10
-            done = True
-        else:
-            reward -= 0.1
-
-        next_state = tuple(choice((0,1)) for _ in range(8))
-        return next_state, reward, done 
-        
-
-    def learn(self, state):
-        # for epoch in range(self.epochs):
-            
-            # state = tuple(choice((0,1)) for _ in range(8))
-            if state not in self.Q: 
-                self.Q[state] = [0, 0, 0, 0]            
-
-            while True:
-                if random() < self.exploration_prob:
-                    action = choice(self.actions)
-                else:
-                    action = self.Q[state].index(max(self.Q[state]))
-                
-                next_state, reward, done = self.step(state, action)
-                if next_state not in self.Q:
-                    self.Q[next_state] = [0, 0, 0, 0]
-                
-                if done:
-                    target = reward
-                else:
-                    target = reward + self.discount_factor * max(self.Q[next_state])
-
-                self.Q[state][action] += self.learning_rate * (target - self.Q[state][action])
-
-                if done:
-                    break
-
-                state = next_state
-                
-                # for key, val in self.Q.items():
-                #     print(key, val)
-            # print(epoch)
-            print(self.exploration_prob)
-            self.exploration_prob *= 0.995            
     
+    
+    def is_valid(self, action, dir):
+        if action == 0 and dir == (-1, 0):
+            return False 
+        if action == 1 and dir == (0, -1):
+            return False 
+        if action == 2 and dir == (1, 0):
+            return False 
+        if action == 3 and dir == (0, 1):
+            return False 
+        return True
+    
+    def get_action(self, state, dir):
+        if random() < self.exploration_prob:            
+            while True:                
+                action = choice(self.actions)    
+                if self.is_valid(action, dir):
+                    break
+        else:          
+            i = 0         
+            while True:
+                sorted_actions = sorted(self.Q[state])[::-1]
+                max_val = sorted_actions[i]
+                action = self.Q[state].index(max_val)
+                actions_with_max = [i for i, v in enumerate(self.Q[state]) if v == max_val]
+                action = choice(actions_with_max)
+
+                if self.is_valid(action, dir):
+                    break                
+                i += 1                
+
+                
+        return action
+
+    def learn(self, state, action, next_state, reward, done):
+        # for epoch in range(self.epochs):        
+        # state = tuple(choice((0,1)) for _ in range(8))
+        if state not in self.Q: 
+            self.Q[state] = [0, 0, 0, 0]       
+                   
+        # reward = self.step(state, action)
+        if next_state not in self.Q:
+            self.Q[next_state] = [0, 0, 0, 0]
+        
+        if done:
+            target = reward
+        else:
+            target = reward + self.discount_factor * max(self.Q[next_state])
+
+        self.Q[state][action] += self.learning_rate * (target - self.Q[state][action])
+
+        # if done:                    
+        #     return
+                        
+                    
+        if done:
+            self.exploration_prob = max(self.exploration_prob * 0.95, self.threshold)            
+            
+
 
 
 
@@ -106,15 +117,15 @@ class QLearning:
 #     elif action == 3 and row > 0:    # up
 #         row -= 1
 
-#     next_state = (row, col)    
-#     if next_state == GOAL_STATE:
+#     self.next_state = (row, col)    
+#     if self.next_state == GOAL_STATE:
 #         reward = 1
 #         done = True
 #     else:
-#         reward = reward_func(state, next_state)
+#         reward = reward_func(state, self.next_state)
 #         done = False
     
-#     return next_state, reward, done
+#     return self.next_state, reward, done
 
 
 
@@ -140,16 +151,16 @@ class QLearning:
 #         else:
 #             action = Q[state].index(max(Q[state]))        
 
-#         next_state, reward, done = step(state, action) 
+#         self.next_state, reward, done = step(state, action) 
 
 #         if done:
 #             target = reward
 #         else:
-#             target = reward + discount_factor * max(Q[next_state])
+#             target = reward + discount_factor * max(Q[self.next_state])
 
 #         Q[state][action] += learning_rate * (target - Q[state][action])
          
-#         state = next_state
+#         state = self.next_state
 #         if done:
 #             break                        
 #     exploration_rate = max(0.05, exploration_rate * 0.995)
