@@ -49,11 +49,14 @@ class Draw:
                 
         iterations = 100_000        
         for n in range(iterations):
-           self.snake.train()        
+            self.snake.train()    
+            if n == 50_000:
+                self.Q.exploration_prob = 0
+                self.Q.threshold = 0   
+            if n % 100_000 == 0:
+                print(n)
 
-
-        self.Q.exploration_prob = 0
-        self.Q.threshold = 0
+        
 
         running = True
         while running:
@@ -61,7 +64,8 @@ class Draw:
             pg.display.update()
             for event in pg.event.get():
                 if event.type == pg.QUIT:
-                    running = False                        
+                    running = False   
+                                 
 
             self.snake.train()
             self.render_grid()

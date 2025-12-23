@@ -4,7 +4,7 @@ class QLearning:
 
     learning_rate = 0.01
     discount_factor = 0.95
-    exploration_prob = 0.5
+    exploration_prob = 0.1
     epochs = 100_000
     actions = [0, 1, 2, 3]
 
@@ -76,99 +76,6 @@ class QLearning:
         #     return
                         
                     
-        if done:
-            self.exploration_prob = max(self.exploration_prob * 0.95, self.threshold)            
+        # if done:
+        #     self.exploration_prob = max(self.exploration_prob * 0.95, self.threshold)            
             
-
-
-
-
-# for state, action in Q.Q.items():
-#     print(state, action)
-
-
-
-# from random import random, choice
-# from numpy import sqrt, square
-
-
-# def reward_func(state1, state2):
-#     (y1, x1) = state1
-#     (y2, x2) = state2
-#     y, x = GOAL_STATE
-#     dist1 = sqrt(square(x1 - x) + square(y1 - y))
-#     dist2 = sqrt(square(x2 - x) + square(y2 - y))
-
-#     if dist2 < dist1:
-#         return 0.1
-#     return -0.1
-
-
-
-# def step(state, action):
-#     row, col = state
-
-#     if action == 0 and col < 3:      # right
-#         col += 1
-#     elif action == 1 and row < 3:    # down
-#         row += 1
-#     elif action == 2 and col > 0:    # left
-#         col -= 1
-#     elif action == 3 and row > 0:    # up
-#         row -= 1
-
-#     self.next_state = (row, col)    
-#     if self.next_state == GOAL_STATE:
-#         reward = 1
-#         done = True
-#     else:
-#         reward = reward_func(state, self.next_state)
-#         done = False
-    
-#     return self.next_state, reward, done
-
-
-
-# ACTIONS = [0, 1, 2, 3]
-# GOAL_STATE = (2, 2)
-
-# Q = {}
-# for row in range(4):
-#     for col in range(4):
-#         Q[(row, col)] = [0, 0, 0, 0]
-
-# learning_rate    = 0.4  # alpha
-# discount_factor  = 0.9  # gamma
-# exploration_rate = 0.1  # epsilon
-
-
-# for episode in range(1000):    
-#     state = choice(list(Q.keys())) # START HERE
-
-#     while True:
-#         if random() < exploration_rate:
-#             action = choice(ACTIONS)            
-#         else:
-#             action = Q[state].index(max(Q[state]))        
-
-#         self.next_state, reward, done = step(state, action) 
-
-#         if done:
-#             target = reward
-#         else:
-#             target = reward + discount_factor * max(Q[self.next_state])
-
-#         Q[state][action] += learning_rate * (target - Q[state][action])
-         
-#         state = self.next_state
-#         if done:
-#             break                        
-#     exploration_rate = max(0.05, exploration_rate * 0.995)
-    
-    
-# print("Learned Q-table")
-# for row in range(4):
-#     for col in range(4):
-#         d = {0: "höger", 1: "ner", 2: "vänster", 3: "upp"}
-#         n = Q[(row, col)].index(max(Q[(row, col)]))
-#         print((row, col), d[n], Q[(row, col)])

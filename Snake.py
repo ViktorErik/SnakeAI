@@ -135,7 +135,7 @@ class Snake:
         
         
 
-        # reward -= 0# Discourage going in circles        
+        reward -= 0.1 # Discourage going in circles        
         return reward
     
     def train(self):   
